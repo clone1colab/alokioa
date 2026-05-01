@@ -21,6 +21,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
+import { Analytics } from '@vercel/analytics/react';
 
 interface SheetData {
   link1: string;      
@@ -779,6 +780,7 @@ export default function App() {
           filter: saturate(1.2);
         }
       `}</style>
+      <Analytics />
     </div>
   );
 }
