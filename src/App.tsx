@@ -30,6 +30,7 @@ interface SheetData {
   introLink: string;  
   introText: string;  
   bgImages: string[]; // Cột G -> Q
+  musicLinks: string[]; // Cột R -> V
 }
 
 // Fallback images if sheet is empty
@@ -66,13 +67,32 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
 
-  const tracks = useMemo(() => [
-    { title: "Energetic", artist: "Wanna One" },
-    { title: "Beautiful", artist: "Wanna One" },
-    { title: "Spring Breeze", artist: "Wanna One" },
-    { title: "I.P.U", artist: "Wanna One" },
-    { title: "Light", artist: "Wanna One" },
-  ], []);
+  // Helper to extract YouTube ID
+  const getYoutubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const tracks = useMemo(() => {
+    if (data.length > 0 && data[0].musicLinks && data[0].musicLinks.length > 0) {
+      return data[0].musicLinks
+        .filter(link => link.trim() !== '')
+        .map((link, i) => ({
+          id: getYoutubeId(link),
+          title: `Wanna One Track ${i + 1}`,
+          artist: "Wanna One",
+          url: link
+        }));
+    }
+    return [
+      { id: "EVaV7AwqBWg", title: "Energetic", artist: "Wanna One", url: "" },
+      { id: "OyvG7u6onBw", title: "Beautiful", artist: "Wanna One", url: "" },
+      { id: "2NlZf_Z6m78", title: "Spring Breeze", artist: "Wanna One", url: "" },
+      { id: "fTByZ89h8-8", title: "I.P.U", artist: "Wanna One", url: "" },
+      { id: "O_6f_Dof79E", title: "Light", artist: "Wanna One", url: "" },
+    ];
+  }, [data]);
 
   const currentTrack = tracks[currentTrackIndex];
 
@@ -137,6 +157,12 @@ export default function App() {
           if (result[j]) bgs.push(result[j]);
         }
 
+        // Cột R -> V là index 17 -> 21
+        const musics = [];
+        for(let k = 17; k <= 21; k++) {
+          if (result[k]) musics.push(result[k]);
+        }
+
         return {
           link1: result[0] || '',
           image: result[1] || '',
@@ -144,7 +170,8 @@ export default function App() {
           title: result[3] || '',
           introLink: result[4] || '',
           introText: result[5] || '',
-          bgImages: bgs
+          bgImages: bgs,
+          musicLinks: musics
         };
       })
       .filter((item): item is SheetData => item !== null && item.title !== '');
@@ -230,58 +257,105 @@ export default function App() {
     <div className="min-h-screen font-sans relative overflow-x-hidden text-white">
       {/* Background rực rỡ */}
       <div className="bg-wanna-one-vibrant" />
+
+      {/* Hidden YouTube Player - Optimized for background playback */}
+      {currentTrack?.id && isPlaying && (
+        <div className="fixed -top-10 -left-10 w-1 h-1 opacity-0 pointer-events-none overflow-hidden z-0">
+          <iframe
+            width="100"
+            height="100"
+            src={`https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&mute=0&controls=0&showinfo=0&rel=0&iv_load_policy=3&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+            title="YouTube player"
+            allow="autoplay; encrypted-media"
+            className="absolute top-0 left-0"
+          />
+        </div>
+      )}
+      
+      {/* Audio Hint Toast */}
+      <AnimatePresence>
+        {isPlaying && (
+           <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-white/10 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-full flex items-center gap-2 shadow-2xl pointer-events-none"
+          >
+            <div className="flex gap-1 items-end h-3">
+              <motion.div animate={{ height: [4, 12, 4] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-1 bg-pink-400" />
+              <motion.div animate={{ height: [8, 4, 10] }} transition={{ repeat: Infinity, duration: 0.7 }} className="w-1 bg-violet-400" />
+              <motion.div animate={{ height: [2, 10, 6] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1 bg-blue-400" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+              Mẹo: Mở trong tab mới nếu không nghe thấy nhạc! ↗️
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Music Player Shell */}
-      <div className="fixed top-6 left-6 z-[60] hidden md:block">
+      <div className="fixed top-4 left-4 md:top-6 md:left-6 z-[60]">
         <motion.div 
           initial={{ x: -100, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="music-player-glass flex items-center gap-4 px-5 py-3 rounded-2xl"
+          className="music-player-glass flex items-center gap-3 md:gap-4 px-3 md:px-5 py-2 md:py-3 rounded-2xl md:rounded-3xl shadow-2xl"
         >
           <div className="relative">
-            <div className={`w-12 h-12 rounded-full bg-gradient-to-tr from-pink-500 to-violet-500 flex items-center justify-center ${isPlaying ? 'animate-spin-slow' : ''}`}>
-              <Music size={20} className="text-white" />
-            </div>
+            <motion.div 
+              className={`w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-tr from-pink-500/80 to-violet-600/80 flex items-center justify-center ${isPlaying ? 'animate-spin-slow' : ''}`}
+              animate={isPlaying ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ repeat: Infinity, duration: 2 }}
+            >
+              <Music size={18} className="text-white drop-shadow-sm" />
+            </motion.div>
             {isPlaying && (
               <motion.div 
-                className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ repeat: Infinity, duration: 1 }}
+                className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-[#0f172a]"
+                animate={{ opacity: [1, 0.4, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
               />
             )}
           </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] uppercase font-bold text-white/50 tracking-widest">Now Playing</span>
-            <span className="text-sm font-black text-white truncate max-w-[120px]">{currentTrack.title}</span>
-            <div className="flex items-center gap-3 mt-1">
+          <div className="flex flex-col min-w-[100px] md:min-w-[140px]">
+            <span className="text-[9px] md:text-[10px] uppercase font-bold text-white/40 tracking-[0.2em]">Live from Sheet</span>
+            <span className="text-xs md:text-sm font-extrabold text-white truncate max-w-[100px] md:max-w-[150px]">{currentTrack.title}</span>
+            <div className="flex items-center gap-4 mt-1.5 md:mt-2">
               <button 
                 onClick={() => setCurrentTrackIndex(prev => (prev - 1 + tracks.length) % tracks.length)}
-                className="text-white/70 hover:text-white transition-colors"
+                className="text-white/50 hover:text-white transition-colors p-1"
               >
                 <SkipBack size={14} />
               </button>
               <button 
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="w-7 h-7 flex items-center justify-center bg-white text-black rounded-full hover:scale-110 transition-transform"
+                className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white text-black rounded-full hover:scale-110 active:scale-95 transition-all shadow-lg active:shadow-inner"
               >
                 {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5" />}
               </button>
               <button 
                 onClick={() => setCurrentTrackIndex(prev => (prev + 1) % tracks.length)}
-                className="text-white/70 hover:text-white transition-colors"
+                className="text-white/50 hover:text-white transition-colors p-1"
               >
                 <SkipForward size={14} />
               </button>
+              <div className="w-[1px] h-3 bg-white/10 mx-1" />
+              <button 
+                onClick={() => window.open(window.location.href, '_blank')}
+                className="text-white/50 hover:text-white transition-colors p-1"
+                title="Mở trong tab mới để nghe nhạc tốt hơn"
+              >
+                <ExternalLink size={14} />
+              </button>
             </div>
           </div>
-          <div className="w-1 px-4 h-8 border-l border-white/10 hidden lg:block" />
-          <div className="hidden lg:flex items-center gap-2 text-white/50">
+          <div className="hidden sm:block w-[1px] h-10 bg-white/10 mx-2" />
+          <div className="hidden lg:flex items-center gap-3 text-white/30 px-2 transition-opacity hover:opacity-100">
             <Volume2 size={16} />
-            <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
+            <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
                <motion.div 
-                className="h-full bg-white/40" 
+                className="h-full bg-white/20" 
                 animate={{ width: isPlaying ? ['20%', '80%', '40%'] : '30%' }}
-                transition={{ duration: 4, repeat: Infinity }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                />
             </div>
           </div>
